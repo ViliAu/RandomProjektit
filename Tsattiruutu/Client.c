@@ -11,7 +11,7 @@
 /* Laittaa kompiilerin toimimaa */
 #pragma comment(lib,"WS2_32")
 
-#define DEFAULT_PORT "666"
+#define DEFAULT_PORT "6666"
 #define BUFF_LEN 512
 
 int main(void) {
@@ -96,6 +96,13 @@ int main(void) {
         /* Empty string */
         for (int i = 0; i < BUFF_LEN; i++) {
             receiveBuff[i] = 0;
+        }
+        printf("Me: ");
+        fgets(sendBuff, BUFF_LEN-1, stdin);
+        commResult = send(connectSocket, sendBuff, (int)strlen(sendBuff)), 0); 
+        /* Empty string */
+        for (int i = 0; i < BUFF_LEN; i++) {
+            sendBuff[i] = 0;
         }
     }
     commResult = shutdown(connectSocket, SD_SEND);

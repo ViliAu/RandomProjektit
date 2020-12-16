@@ -11,7 +11,7 @@
 /* Laittaa kompiilerin toimimaa */
 #pragma comment(lib,"WS2_32")
 
-#define DEFAULT_PORT "666"
+#define DEFAULT_PORT "6666"
 #define MAX_CONNECTIONS 2
 #define BUFF_LEN 512
 
@@ -125,6 +125,15 @@ int main(void) {
         }
         for (int i = 0; i < BUFF_LEN; i++) {
             sendBuff[i] = 0;
+        }
+        commResult = recv(clientSocket, receiveBuff, BUFF_LEN, 0);
+        if (!strcmp(receiveBuff, "-exit")) {
+            break;
+        }
+        printf("Them: %s\n", receiveBuff);
+        /* Empty string */
+        for (int i = 0; i < BUFF_LEN; i++) {
+            receiveBuff[i] = 0;
         }
     }
     getchar();
