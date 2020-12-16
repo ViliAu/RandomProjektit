@@ -3,19 +3,17 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
+/* Soketit */
 #include <winsock2.h>
+/* Protokollat */
 #include <ws2tcpip.h>
 #include <stdio.h>
-#include <stdlib.h>
-
 /* Laittaa kompiilerin toimimaa */
 #pragma comment(lib,"WS2_32")
 
 #define DEFAULT_PORT "666"
 #define MAX_CONNECTIONS 2
 #define BUFF_LEN 512
-
-DWORD WINAPI ReceiveMessages(void *data);
 
 int main(void) {
     /* Result for initializations */
@@ -99,57 +97,6 @@ int main(void) {
 
     printf("Client accepted.\n");
 
-    char sendBuff[BUFF_LEN];
-    char receiveBuff[BUFF_LEN];
-    int commResult;
-    int i;
-    
-    /* Start a new thread for receiving messages */
-    //HANDLE thread = CreateThread(NULL, 0, ReceiveMessages, NULL, 0, NULL);
-
-    /* Tsatti pystys */
-    while (1) {
-        printf("Me: ");
-        fgets(sendBuff, BUFF_LEN - 1, stdin);
-        printf("\n");
-        commResult = send(clientSocket, sendBuff, (int)strlen(sendBuff), 0);
-        if (!strcmp(sendBuff, "-exit")) {
-            break;
-        }
-        if (commResult == SOCKET_ERROR) {
-            printf("Couldn't send packets to client: %d\n", WSAGetLastError());
-            closesocket(clientSocket);
-            WSACleanup();
-            getchar();
-            return 1;
-        }
-        for (int i = 0; i < BUFF_LEN; i++) {
-            sendBuff[i] = 0;
-        }
-    }
     getchar();
     return 0;
 }
-/*
-DWORD WINAPI ReceiveMessages(void *data) {
-    int commResult;
-    while (1) {
-        commResult = recv(clientSocket, receiveBuff, BUFF_LEN, 0);
-        if (initResult < 0) {
-            printf("Couldn't receive message.\n");
-            continue;
-        }
-         
-        if (strcmp(receiveBuff, "-exit")) {
-            break;
-        }
-        else {
-            printf("Them: %s\n", receiveBuff);
-        }
-    }
-    commResult = shutdown(clientSocket, SD_SEND);
-
-    closesocket(clientSocket);
-    WSACleanup();
-    return 0;
-}*/
