@@ -3,11 +3,11 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
-/* Soketit */
 #include <winsock2.h>
-/* Protokollat */
 #include <ws2tcpip.h>
 #include <stdio.h>
+#include <string.h>
+
 /* Laittaa kompiilerin toimimaa */
 #pragma comment(lib,"WS2_32")
 
@@ -82,6 +82,25 @@ int main(void) {
         return 1;
     }
     printf("Connected to server!\n");
+
+    char sendBuff[BUFF_LEN] = "";
+    char receiveBuff[BUFF_LEN] = "";
+    int commResult;
+
+    while(1) {
+        commResult = recv(connectSocket, receiveBuff, BUFF_LEN, 0);
+        if (!strcmp(receiveBuff, "-exit")) {
+            break;
+        }
+        printf("Them: %s\n", receiveBuff);
+        /* Empty string */
+        for (int i = 0; i < BUFF_LEN; i++) {
+            receiveBuff[i] = 0;
+        }
+    }
+    commResult = shutdown(connectSocket, SD_SEND);
+    WSACleanup();
+    printf("Connection terminated.\n");
     getchar();
     return 0;
 }
