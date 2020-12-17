@@ -3,10 +3,14 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
+#define _WIN32_WINNT 0x0501
+
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
+//#include "portaudio/include/portaudio.h"
 
 /* Laittaa kompiilerin toimimaa */
 #pragma comment(lib,"WS2_32")
@@ -21,6 +25,9 @@ SOCKET clientSocket = 0; //Globaali muuttuja hyi vilile
 int commResult, sendResult;
 
 int main(void) {
+    /* Init portaudio */
+    //Pa_Initialize();
+
     /* Result for initializations */
     int initResult;
 
@@ -37,7 +44,7 @@ int main(void) {
 
     /* CREATING A SOCKET */
     /* Host address information */
-    struct addrinfo *result = NULL, *ptr = NULL, hints;
+    struct addrinfo *result = NULL, hints;
 
     ZeroMemory(&hints, sizeof(hints));
     hints.ai_family = AF_INET;
@@ -59,7 +66,7 @@ int main(void) {
     listenSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
     /* Socket error check */
     if (listenSocket == INVALID_SOCKET) {
-        printf("Error at socket(): %ld\n", WSAGetLastError());
+        printf("Error at socket(): %d\n", WSAGetLastError());
         freeaddrinfo(result);
         WSACleanup();
         return 1;
@@ -81,7 +88,7 @@ int main(void) {
 
     /* LISTEN TO SOCKET */
     if (listen(listenSocket, MAX_CONNECTIONS) == SOCKET_ERROR) {
-        printf("Listen failed with error: %ld\n", WSAGetLastError());
+        printf("Listen failed with error: %d\n", WSAGetLastError());
         closesocket(listenSocket);
         WSACleanup();
         return 1;
@@ -100,8 +107,6 @@ int main(void) {
     printf("Client accepted.\n");
 
     char receiveBuff[BUFF_LEN];
-    //char sendBuff[BUFF_LEN];
-    int i;
     
     /* Start a new thread for receiving messages */
     HANDLE thread = CreateThread(NULL, 0, WriteMessages, NULL, 0, NULL);
@@ -124,7 +129,7 @@ DWORD WINAPI WriteMessages(void *data) {
     time_t currentTime;
 
     printf("Input a name (max. 20 chars): ");
-    gets_s(chatName, 19);
+    fgets(chatName, sizeof(chatName), stdin);
 
     while (fgets(sendMsg, BUFF_LEN - 1, stdin)) {
         if (sendResult == SOCKET_ERROR) {

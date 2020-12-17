@@ -3,11 +3,14 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
+#define _WIN32_WINNT 0x0501
+
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+//#include "portaudio/include/portaudio.h"
 
 /* Laittaa kompiilerin toimimaa */
 #pragma comment(lib,"WS2_32")
@@ -24,6 +27,8 @@ int commResult, sendResult;
 int main(void) {
     /* Result for initializations */
     int initResult;
+
+    //Pa_Initialize();
 
     /* INITIALIZING WSADll */
     WSADATA wsaData;
@@ -49,7 +54,7 @@ int main(void) {
     /* Get IP */
     char buff[100];
     printf("Give an address to connect to: ");
-    gets_s(buff, 99);
+    gets(buff);
     if (strlen(buff) == 0) {
         strcat(buff, DEFAULT_IP);
     }
@@ -122,7 +127,7 @@ DWORD WINAPI WriteMessages(void* data) {
     time_t currentTime;
     
     printf("Input a name (max. 20 chars): ");
-    gets_s(chatName, 19);
+    gets(chatName);
 
     while (fgets(sendMsg, BUFF_LEN - 1, stdin)) {
         if (sendResult == SOCKET_ERROR) {
