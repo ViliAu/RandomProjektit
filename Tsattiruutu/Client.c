@@ -8,6 +8,7 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include "portaudio/include/portaudio.h"
@@ -20,66 +21,49 @@
 #define BUFF_LEN 512
 
 DWORD WINAPI WriteMessages(void* data);
+DWORD WINAPI IOAudio(void* data);
+
 SOCKET connectSocket = 0; //Globaali muuttuja hyi vilile
 int commResult, sendResult;
 
 /* PORTAUDIO */
 #define SAMPLE_RATE (44100)
+#define FRAMES_PER_BUFFER 256
+#define SAMPLE_SIZE 4
 
-/* CALLBACK FUNC */
-typedef int PaStreamCallback(const void* input,
-    void* output,
-    unsigned long frameCount,
-    const PaStreamCallbackTimeInfo* timeInfo,
-    PaStreamCallbackFlags statusFlags,
-    void* userData);
-
-/* This routine will be called by the PortAudio engine when audio is needed.
- * It may called at interrupt level on some machines so don't do anything
- * that could mess up the system like calling malloc() or free().
- */
-static int voipCallBack(const void* inputBuffer, void* outputBuffer,
-    unsigned long framesPerBuffer,
-    const PaStreamCallbackTimeInfo* timeInfo,
-    PaStreamCallbackFlags statusFlags,
-    void* userData) {
-
-    const float* in = (const float*)inputBuffer;
-    float* out = (float*)outputBuffer;
-    float leftInput, rightInput;
-    unsigned int i;
-
-    /* Read input buffer, process data, and fill output buffer. */
-    for (i = 0; i < framesPerBuffer; i++) {
-        leftInput = *in++;      /* Get interleaved samples from input buffer. */
-        rightInput = *in++;
-        *out++ = leftInput * rightInput;            /* ring modulation */
-        *out++ = 0.5f * (leftInput + rightInput);   /* mix */
-    }
-
-    return 0;
-}
-//TODO: MUUTA NÄÄ JOOKOS
-float* outData, * inData;
+PaStream* stream;
+char* sampleBlockSend = NULL;
+char* sampleBlockReceive = NULL;
+int numMem;
 
 int main(void) {
-    /* PORTAUDIO INITIT */
+    /* Init portaudio */
+   /* PORTAUDIO INITIT */
     PaError err = Pa_Initialize();
     if (err != paNoError)
         return 1;
-    PaStream* stream;
 
+    /* -- setup input and output -- */
+    PaStreamParameters inputParameters, outputParameters;
+    inputParameters.device = Pa_GetDefaultInputDevice(); /* default input device */
+    inputParameters.channelCount = 1;
+    inputParameters.sampleFormat = paFloat32;
+    inputParameters.suggestedLatency = Pa_GetDeviceInfo(inputParameters.device)->defaultHighInputLatency;
+    inputParameters.hostApiSpecificStreamInfo = NULL;
+
+    outputParameters.device = Pa_GetDefaultOutputDevice(); /* default output device */
+    outputParameters.channelCount = 1;
+    outputParameters.sampleFormat = paFloat32;
+    outputParameters.suggestedLatency = Pa_GetDeviceInfo(outputParameters.device)->defaultHighOutputLatency;
+    outputParameters.hostApiSpecificStreamInfo = NULL;
 
     /* TODO: Ehkä stereo tuki???? */
-    error = Pa_OpenDefaultStream(&inputStream, 1, 0, paFloat32, SAMPLE_RATE, 256, voipCallBack, NULL);
+    /* Blocking, so no callback. No callback, so no callback userData */
+    err = Pa_OpenStream(&stream, &inputParameters, &outputParameters, SAMPLE_RATE, FRAMES_PER_BUFFER, paClipOff, NULL, NULL);
 
-    error = Pa_StartStream(stream);
-    getchar();
-    error = Pa_StopStream(stream);
-    error = Pa_CloseStream(stream);
-    error = Pa_Terminate();
-
-
+    numMem = FRAMES_PER_BUFFER * SAMPLE_SIZE * Pa_GetDeviceInfo(inputParameters.device)->maxInputChannels;
+    sampleBlockReceive = sampleBlockSend = (char*)malloc(numMem);
+    memset(sampleBlockReceive, 0.0f, numMem);
 
     /* Result for initializations */
     int initResult, voiceChat;
@@ -159,6 +143,7 @@ int main(void) {
 
     /* Start a new thread for receiving messages */
     HANDLE thread = CreateThread(NULL, 0, WriteMessages, NULL, 0, NULL);
+    HANDLE thread2 = CreateThread(NULL, 0, IOAudio, NULL, 0, NULL);
 
     /* Tsatti pystys */
     while (1) {
@@ -171,6 +156,9 @@ int main(void) {
         memset(receiveBuff, 0, sizeof(receiveBuff));
     }
     WSACleanup();
+    err = Pa_StopStream(stream);
+    err = Pa_CloseStream(stream);
+    err = Pa_Terminate();
     getchar();
     return 0;
 }
@@ -204,4 +192,29 @@ DWORD WINAPI WriteMessages(void* data) {
     }
     printf("LOPPU");
     return 0;
+}
+
+DWORD WINAPI IOAudio(void* data) {
+    PaError err = Pa_StartStream(stream);
+    if (err != paNoError) {
+        printf("Vituiks meni %d", err);
+        return 1;
+    }
+    while (1) {
+        err = Pa_ReadStream(stream, sampleBlockSend, FRAMES_PER_BUFFER);
+        if (err != paNoError) {
+            printf("Vituiks meni lah %d", err);
+            return 1;
+        }
+        send(connectSocket, sampleBlockSend, BUFF_LEN, 1);
+
+        recv(connectSocket, sampleBlockReceive, BUFF_LEN, 1);
+        err = Pa_WriteStream(stream, sampleBlockReceive, FRAMES_PER_BUFFER);
+        if (err != paNoError) {
+            printf("Vituiks meni kirjotus %d", err);
+            return 1;
+        }
+
+        //printf("Receive: %d, Send: %d \n", (int)strlen(sampleBlockSend), (int)strlen(sampleBlockReceive));
+    }
 }
