@@ -7,11 +7,13 @@
 #include <ws2tcpip.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 /* Laittaa kompiilerin toimimaa */
 #pragma comment(lib,"WS2_32")
 
 #define DEFAULT_PORT "6666"
+#define DEFAULT_IP "87.93.9.90"
 #define BUFF_LEN 512
 
 DWORD WINAPI WriteMessages(void* data);
@@ -48,6 +50,9 @@ int main(void) {
     char buff[100];
     printf("Give an address to connect to: ");
     gets_s(buff, 99);
+    if (strlen(buff) == 0) {
+        strcat(buff, DEFAULT_IP);
+    }
 
     /* Resolve the local address and port to be used by the server */
     initResult = getaddrinfo(buff, DEFAULT_PORT, &hints, &result);
@@ -97,27 +102,45 @@ int main(void) {
     /* Tsatti pystys */
     while (1) {
         commResult = recv(connectSocket, receiveBuff, BUFF_LEN, 0);
-        printf("Them: %s", receiveBuff);
-        commResult = 0;
-        for (int i = 0; i < BUFF_LEN; i++)
-            receiveBuff[i] = 0;
+        /*if (commResult < 0) {
+            printf("LOPPU");
+            break;
+        }*/
+        printf("%s\n", receiveBuff);
+        memset(receiveBuff, 0, sizeof(receiveBuff));
     }
+    WSACleanup();
     getchar();
     return 0;
 }
 
 DWORD WINAPI WriteMessages(void* data) {
     char sendBuff[BUFF_LEN];
-    printf("Me: ");
-    while (fgets(sendBuff, BUFF_LEN - 1, stdin)) {
+    char sendMsg[BUFF_LEN - 20];
+    char chatName[20];
+    char timeStamp[20];
+    time_t currentTime;
+    
+    printf("Input a name (max. 20 chars): ");
+    gets_s(chatName, 19);
+
+    while (fgets(sendMsg, BUFF_LEN - 1, stdin)) {
         if (sendResult == SOCKET_ERROR) {
             printf("Send failed: %d\n", WSAGetLastError());
+            return 1;
         }
+        time(&currentTime);
+        strftime(timeStamp, 20, "[31m[%d.%m.%Y %H.%M] ", localtime(&currentTime));
+        strcat(sendBuff, timeStamp);
+        strcat(sendBuff, chatName);
+        strcat(sendBuff, ": ");
+        strcat(sendBuff, sendMsg);
         sendResult = send(connectSocket, sendBuff, (int)strlen(sendBuff), 0);
         sendResult = 0;
-        for (int i = 0; i < BUFF_LEN; i++)
-            sendBuff[i] = 0;
-        printf("Me: ");
+        printf("%sMe: %s\n", timeStamp, sendMsg);
+        memset(sendBuff, 0, sizeof(sendBuff));
+        memset(sendBuff, 0, sizeof(sendMsg));
     }
+    printf("LOPPU");
     return 0;
 }

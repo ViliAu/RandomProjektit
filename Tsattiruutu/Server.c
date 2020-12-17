@@ -109,10 +109,8 @@ int main(void) {
     /* Tsatti pystys */
     while (1) {
         commResult = recv(clientSocket, receiveBuff, BUFF_LEN, 0);
-        printf("\nThem: %s", receiveBuff);
-        commResult = 0;
-        for (int i = 0; i < BUFF_LEN; i++)
-            receiveBuff[i] = 0;
+        printf("%s\n", receiveBuff);
+        memset(receiveBuff, 0, sizeof(receiveBuff));
     }
     getchar();
     return 0;
@@ -120,16 +118,29 @@ int main(void) {
 
 DWORD WINAPI WriteMessages(void *data) {
     char sendBuff[BUFF_LEN];
-    printf("Me: ");
-    while (fgets(sendBuff, BUFF_LEN - 1, stdin)) {
+    char sendMsg[BUFF_LEN-20];
+    char chatName[20];
+    char timeStamp[20];
+    time_t currentTime;
+
+    printf("Input a name (max. 20 chars): ");
+    gets_s(chatName, 19);
+
+    while (fgets(sendMsg, BUFF_LEN - 1, stdin)) {
         if (sendResult == SOCKET_ERROR) {
             printf("Send failed: %d\n", WSAGetLastError());
         }
+        time(&currentTime);
+        strftime(timeStamp, 20, "[%d.%m.%Y %H.%M] ", localtime(&currentTime));
+        strcat(sendBuff, timeStamp);
+        strcat(sendBuff, chatName);
+        strcat(sendBuff, ": ");
+        strcat(sendBuff, sendMsg);
         sendResult = send(clientSocket, sendBuff, (int)strlen(sendBuff), 0);
         sendResult = 0;
-        for (int i = 0; i < BUFF_LEN; i++)
-            sendBuff[i] = 0;
-        printf("Me: ");
+        printf("%sMe: %s\n", timeStamp, sendMsg);
+        memset(sendBuff, 0, sizeof(sendBuff));
+        memset(sendBuff, 0, sizeof(sendMsg));
     }
     return 0;
 }
