@@ -14,6 +14,11 @@
 #define DEFAULT_PORT "6666"
 #define BUFF_LEN 512
 
+DWORD WINAPI WriteMessages(void* data);
+
+SOCKET connectSocket = 0; //Globaali muuttuja hyi vilile
+int commResult, sendResult;
+
 int main(void) {
     /* Result for initializations */
     int initResult;
@@ -55,7 +60,7 @@ int main(void) {
     printf("Host address resolved.\n");
 
     /* Create a socket for connecting to the server and assign it's addresses */
-    SOCKET connectSocket = INVALID_SOCKET;
+    //SOCKET connectSocket = INVALID_SOCKET;
 
     // Attempt to connect to the first address returned by the call to getaddrinfo
     ptr = result;
@@ -83,31 +88,36 @@ int main(void) {
     }
     printf("Connected to server!\n");
 
-    char sendBuff[BUFF_LEN] = "";
+    //char receiveBuff[BUFF_LEN] = "";
     char receiveBuff[BUFF_LEN] = "";
-    int commResult;
 
-    while(1) {
+    /* Start a new thread for receiving messages */
+    HANDLE thread = CreateThread(NULL, 0, WriteMessages, NULL, 0, NULL);
+
+    /* Tsatti pystys */
+    while (1) {
         commResult = recv(connectSocket, receiveBuff, BUFF_LEN, 0);
-        if (!strcmp(receiveBuff, "-exit")) {
-            break;
-        }
-        printf("Them: %s\n", receiveBuff);
-        /* Empty string */
-        for (int i = 0; i < BUFF_LEN; i++) {
+        printf("Them: %s", receiveBuff);
+        commResult = 0;
+        for (int i = 0; i < BUFF_LEN; i++)
             receiveBuff[i] = 0;
-        }
-        printf("Me: ");
-        fgets(sendBuff, BUFF_LEN-1, stdin);
-        commResult = send(connectSocket, sendBuff, (int)strlen(sendBuff)), 0); 
-        /* Empty string */
-        for (int i = 0; i < BUFF_LEN; i++) {
-            sendBuff[i] = 0;
-        }
     }
-    commResult = shutdown(connectSocket, SD_SEND);
-    WSACleanup();
-    printf("Connection terminated.\n");
     getchar();
+    return 0;
+}
+
+DWORD WINAPI WriteMessages(void* data) {
+    char sendBuff[BUFF_LEN];
+    printf("Me: ");
+    while (fgets(sendBuff, BUFF_LEN - 1, stdin)) {
+        if (sendResult == SOCKET_ERROR) {
+            printf("Send failed: %d\n", WSAGetLastError());
+        }
+        sendResult = send(connectSocket, sendBuff, (int)strlen(sendBuff), 0);
+        sendResult = 0;
+        for (int i = 0; i < BUFF_LEN; i++)
+            sendBuff[i] = 0;
+        printf("Me: ");
+    }
     return 0;
 }

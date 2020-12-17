@@ -15,7 +15,10 @@
 #define MAX_CONNECTIONS 2
 #define BUFF_LEN 512
 
-DWORD WINAPI ReceiveMessages(void *data);
+DWORD WINAPI WriteMessages(void *data);
+
+SOCKET clientSocket = 0; //Globaali muuttuja hyi vilile
+int commResult, sendResult;
 
 int main(void) {
     /* Result for initializations */
@@ -85,9 +88,6 @@ int main(void) {
     }
     printf("Listening to port %s...\n", DEFAULT_PORT);
 
-    // TODO: Useiden clienttien tuki?
-    SOCKET clientSocket = 0;
-
     // Accept a client socket
     clientSocket = accept(listenSocket, NULL, NULL);
     if (clientSocket == INVALID_SOCKET) {
@@ -99,66 +99,37 @@ int main(void) {
 
     printf("Client accepted.\n");
 
-    char sendBuff[BUFF_LEN];
     char receiveBuff[BUFF_LEN];
-    int commResult;
+    //char sendBuff[BUFF_LEN];
     int i;
     
     /* Start a new thread for receiving messages */
-    //HANDLE thread = CreateThread(NULL, 0, ReceiveMessages, NULL, 0, NULL);
+    HANDLE thread = CreateThread(NULL, 0, WriteMessages, NULL, 0, NULL);
 
     /* Tsatti pystys */
     while (1) {
-        printf("Me: ");
-        fgets(sendBuff, BUFF_LEN - 1, stdin);
-        printf("\n");
-        commResult = send(clientSocket, sendBuff, (int)strlen(sendBuff), 0);
-        if (!strcmp(sendBuff, "-exit")) {
-            break;
-        }
-        if (commResult == SOCKET_ERROR) {
-            printf("Couldn't send packets to client: %d\n", WSAGetLastError());
-            closesocket(clientSocket);
-            WSACleanup();
-            getchar();
-            return 1;
-        }
-        for (int i = 0; i < BUFF_LEN; i++) {
-            sendBuff[i] = 0;
-        }
         commResult = recv(clientSocket, receiveBuff, BUFF_LEN, 0);
-        if (!strcmp(receiveBuff, "-exit")) {
-            break;
-        }
-        printf("Them: %s\n", receiveBuff);
-        /* Empty string */
-        for (int i = 0; i < BUFF_LEN; i++) {
+        printf("\nThem: %s", receiveBuff);
+        commResult = 0;
+        for (int i = 0; i < BUFF_LEN; i++)
             receiveBuff[i] = 0;
-        }
     }
     getchar();
     return 0;
 }
-/*
-DWORD WINAPI ReceiveMessages(void *data) {
-    int commResult;
-    while (1) {
-        commResult = recv(clientSocket, receiveBuff, BUFF_LEN, 0);
-        if (initResult < 0) {
-            printf("Couldn't receive message.\n");
-            continue;
-        }
-         
-        if (strcmp(receiveBuff, "-exit")) {
-            break;
-        }
-        else {
-            printf("Them: %s\n", receiveBuff);
-        }
-    }
-    commResult = shutdown(clientSocket, SD_SEND);
 
-    closesocket(clientSocket);
-    WSACleanup();
+DWORD WINAPI WriteMessages(void *data) {
+    char sendBuff[BUFF_LEN];
+    printf("Me: ");
+    while (fgets(sendBuff, BUFF_LEN - 1, stdin)) {
+        if (sendResult == SOCKET_ERROR) {
+            printf("Send failed: %d\n", WSAGetLastError());
+        }
+        sendResult = send(clientSocket, sendBuff, (int)strlen(sendBuff), 0);
+        sendResult = 0;
+        for (int i = 0; i < BUFF_LEN; i++)
+            sendBuff[i] = 0;
+        printf("Me: ");
+    }
     return 0;
-}*/
+}
