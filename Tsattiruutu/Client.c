@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-//#include "portaudio/include/portaudio.h"
+#include "portaudio/include/portaudio.h"
 
 /* Laittaa kompiilerin toimimaa */
 #pragma comment(lib,"WS2_32")
@@ -20,13 +20,69 @@
 #define BUFF_LEN 512
 
 DWORD WINAPI WriteMessages(void* data);
-
 SOCKET connectSocket = 0; //Globaali muuttuja hyi vilile
 int commResult, sendResult;
 
+/* PORTAUDIO */
+#define SAMPLE_RATE (44100)
+
+/* CALLBACK FUNC */
+typedef int PaStreamCallback(const void* input,
+    void* output,
+    unsigned long frameCount,
+    const PaStreamCallbackTimeInfo* timeInfo,
+    PaStreamCallbackFlags statusFlags,
+    void* userData);
+
+/* This routine will be called by the PortAudio engine when audio is needed.
+ * It may called at interrupt level on some machines so don't do anything
+ * that could mess up the system like calling malloc() or free().
+ */
+static int voipCallBack(const void* inputBuffer, void* outputBuffer,
+    unsigned long framesPerBuffer,
+    const PaStreamCallbackTimeInfo* timeInfo,
+    PaStreamCallbackFlags statusFlags,
+    void* userData) {
+
+    const float* in = (const float*)inputBuffer;
+    float* out = (float*)outputBuffer;
+    float leftInput, rightInput;
+    unsigned int i;
+
+    /* Read input buffer, process data, and fill output buffer. */
+    for (i = 0; i < framesPerBuffer; i++) {
+        leftInput = *in++;      /* Get interleaved samples from input buffer. */
+        rightInput = *in++;
+        *out++ = leftInput * rightInput;            /* ring modulation */
+        *out++ = 0.5f * (leftInput + rightInput);   /* mix */
+    }
+
+    return 0;
+}
+//TODO: MUUTA NÄÄ JOOKOS
+float* outData, * inData;
+
 int main(void) {
+    /* PORTAUDIO INITIT */
+    PaError err = Pa_Initialize();
+    if (err != paNoError)
+        return 1;
+    PaStream* stream;
+
+
+    /* TODO: Ehkä stereo tuki???? */
+    error = Pa_OpenDefaultStream(&inputStream, 1, 0, paFloat32, SAMPLE_RATE, 256, voipCallBack, NULL);
+
+    error = Pa_StartStream(stream);
+    getchar();
+    error = Pa_StopStream(stream);
+    error = Pa_CloseStream(stream);
+    error = Pa_Terminate();
+
+
+
     /* Result for initializations */
-    int initResult;
+    int initResult, voiceChat;
 
     //Pa_Initialize();
 
