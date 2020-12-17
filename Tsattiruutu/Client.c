@@ -152,8 +152,10 @@ int main(void) {
             printf("LOPPU");
             break;
         }*/
-        printf("%s\n", receiveBuff);
-        memset(receiveBuff, 0, sizeof(receiveBuff));
+        if ((int)strlen(receiveBuff) > 1) {
+            printf("%s\n", receiveBuff);
+            memset(receiveBuff, 0, sizeof(receiveBuff));
+        }
     }
     WSACleanup();
     err = Pa_StopStream(stream);
@@ -203,7 +205,7 @@ DWORD WINAPI IOAudio(void* data) {
     while (1) {
         err = Pa_ReadStream(stream, sampleBlockSend, FRAMES_PER_BUFFER);
         if (err != paNoError) {
-            printf("Vituiks meni lah %d", err);
+            //printf("Vituiks meni lah %d", err);
             continue;
         }
         send(connectSocket, sampleBlockSend, BUFF_LEN, 1);
@@ -211,7 +213,7 @@ DWORD WINAPI IOAudio(void* data) {
         recv(connectSocket, sampleBlockReceive, BUFF_LEN, 1);
         err = Pa_WriteStream(stream, sampleBlockReceive, FRAMES_PER_BUFFER);
         if (err != paNoError) {
-            printf("Vituiks meni kirjotus %d", err);
+            //printf("Vituiks meni kirjotus %d", err);
             continue;
         }
 

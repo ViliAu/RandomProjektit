@@ -12,7 +12,7 @@
 #include <time.h>
 #include "portaudio/include/portaudio.h"
 
-/* Laittaa kompiilerin toimimaa */
+/* Library link for the compiler */
 #pragma comment(lib,"WS2_32")
 
 #define DEFAULT_PORT "6666"
@@ -61,8 +61,10 @@ int main(void) {
     err = Pa_OpenStream(&stream, &inputParameters, &outputParameters, SAMPLE_RATE, FRAMES_PER_BUFFER, paClipOff, NULL, NULL);
 
     numMem = FRAMES_PER_BUFFER * SAMPLE_SIZE * Pa_GetDeviceInfo(inputParameters.device)->maxInputChannels;
-    sampleBlockReceive = sampleBlockSend = (char*)malloc(numMem);
+    sampleBlockReceive = (char*)malloc(numMem);
+    sampleBlockSend = (char*)malloc(numMem);
     memset(sampleBlockReceive, 0.0f, numMem);
+    memset(sampleBlockSend, 0.0f, numMem);
 
     /* Result for initializations */
     int initResult;
@@ -151,7 +153,10 @@ int main(void) {
     /* Tsatti pystys */
     while (1) {
         commResult = recv(clientSocket, receiveBuff, BUFF_LEN, 0);
-        printf("%s\n", receiveBuff);
+        if ((int)strlen(receiveBuff) > 1) {
+            printf("%s\n", receiveBuff);
+            memset(receiveBuff, 0, sizeof(receiveBuff));
+        }
         memset(receiveBuff, 0, sizeof(receiveBuff));
     }
     getchar();
@@ -196,7 +201,7 @@ DWORD WINAPI IOAudio(void *data) {
     while (1) {
         err = Pa_ReadStream(stream, sampleBlockSend, FRAMES_PER_BUFFER);
         if (err != paNoError) {
-            printf("Vituiks meni lah %d", err);
+            //printf("Vituiks meni lah %d", err);
             continue;
         }
         send(clientSocket, sampleBlockSend, BUFF_LEN, 1);
@@ -204,10 +209,9 @@ DWORD WINAPI IOAudio(void *data) {
         recv(clientSocket, sampleBlockReceive, BUFF_LEN, 1);
         err = Pa_WriteStream(stream, sampleBlockReceive, FRAMES_PER_BUFFER);
         if (err != paNoError) {
-            printf("Vituiks meni kirjotus %d", err);
+            //printf("Vituiks meni kirjotus %d", err);
             continue;
         }
-
         //printf("Receive: %d, Send: %d \n", (int)strlen(sampleBlockSend), (int)strlen(sampleBlockReceive));
     }
 }
