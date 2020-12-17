@@ -197,7 +197,7 @@ DWORD WINAPI IOAudio(void *data) {
         err = Pa_ReadStream(stream, sampleBlockSend, FRAMES_PER_BUFFER);
         if (err != paNoError) {
             printf("Vituiks meni lah %d", err);
-            return 1;
+            continue;
         }
         send(clientSocket, sampleBlockSend, BUFF_LEN, 1);
 
@@ -205,7 +205,7 @@ DWORD WINAPI IOAudio(void *data) {
         err = Pa_WriteStream(stream, sampleBlockReceive, FRAMES_PER_BUFFER);
         if (err != paNoError) {
             printf("Vituiks meni kirjotus %d", err);
-            return 1;
+            continue;
         }
 
         //printf("Receive: %d, Send: %d \n", (int)strlen(sampleBlockSend), (int)strlen(sampleBlockReceive));
