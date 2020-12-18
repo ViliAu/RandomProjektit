@@ -21,6 +21,7 @@
 
 DWORD WINAPI WriteMessages(void* data);
 DWORD WINAPI IOAudio(void* data);
+DWORD WINAPI GetAudio(void* data);
 
 SOCKET clientSocket = 0; //Globaali muuttuja hyi vilile
 int commResult, sendResult;
@@ -147,11 +148,13 @@ int main(void) {
     char receiveBuff[BUFF_LEN];
     
     /* Start a new thread for receiving messages */
+    err = Pa_StartStream(stream);
     HANDLE thread = CreateThread(NULL, 0, WriteMessages, NULL, 0, NULL);
     HANDLE thread2 = CreateThread(NULL, 0, IOAudio, NULL, 0, NULL);
+    HANDLE thread3 = CreateThread(NULL, 0, GetAudio, NULL, 0, NULL);
 
     /* Tsatti pystys */
-    while (1) {
+    while (0) {
         commResult = recv(clientSocket, receiveBuff, BUFF_LEN, 0);
         if ((int)strlen(receiveBuff) > 1) {
             printf("%s\n", receiveBuff);
@@ -160,6 +163,10 @@ int main(void) {
         memset(receiveBuff, 0, sizeof(receiveBuff));
     }
     getchar();
+    WSACleanup();
+    err = Pa_StopStream(stream);
+    err = Pa_CloseStream(stream);
+    err = Pa_Terminate();
     return 0;
 }
 
@@ -192,20 +199,9 @@ DWORD WINAPI WriteMessages(void *data) {
     return 0;
 }
 
-DWORD WINAPI IOAudio(void *data) {
-    PaError err = Pa_StartStream(stream);
-    if (err != paNoError) {
-        printf("Vituiks meni %d", err);
-        return 1;
-    }
+DWORD WINAPI IOAudio(void* data) {
+    PaError err;
     while (1) {
-        err = Pa_ReadStream(stream, sampleBlockSend, FRAMES_PER_BUFFER);
-        if (err != paNoError) {
-            //printf("Vituiks meni lah %d", err);
-            continue;
-        }
-        send(clientSocket, sampleBlockSend, BUFF_LEN, 1);
-
         recv(clientSocket, sampleBlockReceive, BUFF_LEN, 1);
         err = Pa_WriteStream(stream, sampleBlockReceive, FRAMES_PER_BUFFER);
         if (err != paNoError) {
@@ -213,5 +209,17 @@ DWORD WINAPI IOAudio(void *data) {
             continue;
         }
         //printf("Receive: %d, Send: %d \n", (int)strlen(sampleBlockSend), (int)strlen(sampleBlockReceive));
+    }
+}
+
+DWORD WINAPI GetAudio(void* data) {
+    PaError err;
+    while (1) {
+        err = Pa_ReadStream(stream, sampleBlockSend, FRAMES_PER_BUFFER);
+        if (err != paNoError) {
+            //printf("Vituiks meni lah %d", err);
+            continue;
+        }
+        send(clientSocket, sampleBlockSend, BUFF_LEN, 1);
     }
 }
