@@ -21,14 +21,13 @@
 
 DWORD WINAPI WriteMessages(void* data);
 DWORD WINAPI IOAudio(void* data);
-DWORD WINAPI GetAudio(void* data);
 
 SOCKET clientSocket = 0; //Globaali muuttuja hyi vilile
 int commResult, sendResult;
 
 /* PORTAUDIO */
-#define SAMPLE_RATE (44100)
-#define FRAMES_PER_BUFFER 128
+#define SAMPLE_RATE (20000)
+#define FRAMES_PER_BUFFER 64
 #define SAMPLE_SIZE 4
 
 char* sampleBlockSend = NULL;
@@ -151,10 +150,9 @@ int main(void) {
     err = Pa_StartStream(stream);
     HANDLE thread = CreateThread(NULL, 0, WriteMessages, NULL, 0, NULL);
     HANDLE thread2 = CreateThread(NULL, 0, IOAudio, NULL, 0, NULL);
-    HANDLE thread3 = CreateThread(NULL, 0, GetAudio, NULL, 0, NULL);
 
     /* Tsatti pystys */
-    while (0) {
+    while (1) {
         commResult = recv(clientSocket, receiveBuff, BUFF_LEN, 0);
         if ((int)strlen(receiveBuff) > 1) {
             printf("%s\n", receiveBuff);
@@ -205,19 +203,12 @@ DWORD WINAPI IOAudio(void* data) {
         recv(clientSocket, sampleBlockReceive, BUFF_LEN, 1);
         err = Pa_WriteStream(stream, sampleBlockReceive, FRAMES_PER_BUFFER);
         if (err != paNoError) {
-            //printf("Vituiks meni kirjotus %d", err);
+            printf("Vituiks meni kirjotus %d", err);
             continue;
         }
-        //printf("Receive: %d, Send: %d \n", (int)strlen(sampleBlockSend), (int)strlen(sampleBlockReceive));
-    }
-}
-
-DWORD WINAPI GetAudio(void* data) {
-    PaError err;
-    while (1) {
         err = Pa_ReadStream(stream, sampleBlockSend, FRAMES_PER_BUFFER);
         if (err != paNoError) {
-            //printf("Vituiks meni lah %d", err);
+            printf("Vituiks meni lah %d", err);
             continue;
         }
         send(clientSocket, sampleBlockSend, BUFF_LEN, 1);
