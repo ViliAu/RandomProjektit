@@ -66,7 +66,7 @@ int main(void) {
     /* Blocking, so no callback. No callback, so no callback userData */
     err = Pa_OpenStream(&stream, &inputParameters, &outputParameters, SAMPLE_RATE, FRAMES_PER_BUFFER, paClipOff, NULL, NULL);
     /* Tahan stereo */
-    numMem = FRAMES_PER_BUFFER * sizeof(char)*2;
+    numMem = FRAMES_PER_BUFFER * sizeof(char)*16;
     sampleBlockReceive = (char*)malloc(numMem);
     sampleBlockSend = (char*)malloc(numMem);
     memset(sampleBlockReceive, 0.0f, numMem);
@@ -221,4 +221,12 @@ DWORD WINAPI IOAudio(void* data) {
     err = Pa_StopStream(stream);
     err = Pa_CloseStream(stream);
     err = Pa_Terminate();
+}
+
+DWORD WINAPI AudioIN(void* data) {
+
+}
+
+DWORD WINAPI AudioOUT(void* data) {
+
 }

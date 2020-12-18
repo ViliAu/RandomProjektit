@@ -63,7 +63,7 @@ int main(void) {
     /* Blocking, so no callback. No callback, so no callback userData */
     err = Pa_OpenStream(&stream, &inputParameters, &outputParameters, SAMPLE_RATE, FRAMES_PER_BUFFER, paClipOff, NULL, NULL);
     /* Tahan stereo */
-    numMem = FRAMES_PER_BUFFER * sizeof(char)*2;
+    numMem = FRAMES_PER_BUFFER * sizeof(char)*16;
     sampleBlockReceive = (char*)malloc(numMem);
     sampleBlockSend = (char*)malloc(numMem);
     memset(sampleBlockReceive, 0.0f, numMem);
@@ -207,13 +207,13 @@ DWORD WINAPI IOAudio(void* data) {
     while (1) {
         err = Pa_WriteStream(stream, sampleBlockReceive, FRAMES_PER_BUFFER);
         if (err != paNoError) {
-            printf("Vituiks meni kirjotus %d", err);
-            continue;
+            //printf("Vituiks meni kirjotus %d", err);
+            //continue;
         }
         err = Pa_ReadStream(stream, sampleBlockSend, FRAMES_PER_BUFFER);
         if (err != paNoError) {
-            printf("Vituiks meni lah %d", err);
-            continue;
+            //printf("Vituiks meni lah %d", err);
+            //continue;
         }
         send(connectSocket, sampleBlockSend, FRAMES_PER_BUFFER, 0);
         recv(connectSocket, sampleBlockReceive, FRAMES_PER_BUFFER, 0);
