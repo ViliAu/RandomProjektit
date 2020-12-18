@@ -13,11 +13,11 @@
 #include "portaudio/include/portaudio.h"
 
 /* Library link for the compiler */
-#pragma comment(lib,"WS2_32")
+#pragma comment(lib,"WS2_32.lib")
 
 #define DEFAULT_PORT "6666"
 #define MAX_CONNECTIONS 2
-#define BUFF_LEN 128
+#define BUFF_LEN 512
 
 DWORD WINAPI WriteMessages(void* data);
 DWORD WINAPI IOAudio(void* data);
@@ -25,11 +25,12 @@ DWORD WINAPI AudioIN(void* data);
 DWORD WINAPI AudioOUT(void* data);
 
 SOCKET clientSocket = 0; //Globaali muuttuja hyi vilile
+SOCKET udpSocket = 0;
 int commResult, sendResult;
 
 /* PORTAUDIO */
 #define SAMPLE_RATE (20000)
-#define FRAMES_PER_BUFFER 64
+#define FRAMES_PER_BUFFER 256
 #define SAMPLE_SIZE 2
 #define CHANNELS 1
 #define FORMAT paInt16
@@ -39,6 +40,9 @@ int numMem;
 
 char* sampleBlockSend = NULL;
 char* sampleBlockReceive = NULL;
+
+struct sockaddr_in sender;
+int senderSize = sizeof(sender);
 
 int main(void) {
     /* Init portaudio */
@@ -87,14 +91,22 @@ int main(void) {
     printf("WSAStartup successful.\n");
 
     /* CREATING A SOCKET */
-    /* Host address information */
     struct addrinfo *result = NULL, hints;
+    struct sockaddr_in server;
 
+    // TCP
     ZeroMemory(&hints, sizeof(hints));
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
     hints.ai_flags = AI_PASSIVE;
+
+    // UDP
+    server.sin_family = AF_INET;
+    server.sin_port = htons(6667);
+    server.sin_addr.s_addr = htonl(INADDR_ANY);
+    udpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    bind(udpSocket, (SOCKADDR*)&server, sizeof(server));
 
     /* Resolve the local address and port to be used by the server */
     initResult = getaddrinfo(NULL, DEFAULT_PORT, &hints, &result);
@@ -141,6 +153,7 @@ int main(void) {
 
     // Accept a client socket
     clientSocket = accept(listenSocket, NULL, NULL);
+    
     if (clientSocket == INVALID_SOCKET) {
         printf("accept failed: %d\n", WSAGetLastError());
         closesocket(listenSocket);
@@ -154,6 +167,12 @@ int main(void) {
     char sendBuff[BUFF_LEN] = { 0 };
     
     /* Start a new thread for receiving messages */
+    
+    // GET UDP BYTES SO WE CAN RESOLVE UDP PARENT ADDR
+    printf("Waiting for upd datagrams...\n");
+    recvfrom(udpSocket, receiveBuff, BUFF_LEN, 0, (SOCKADDR*)&sender, &senderSize);
+    printf("Datagram received!: %s", receiveBuff);
+
     //HANDLE thread = CreateThread(NULL, 0, WriteMessages, NULL, 0, NULL);
     HANDLE thread2 = CreateThread(NULL, 0, IOAudio, NULL, 0, NULL);
 
@@ -215,8 +234,10 @@ DWORD WINAPI IOAudio(void* data) {
             //printf("Vituiks meni lah %d", err);
             continue;
         }
-        send(clientSocket, sampleBlockSend, numMem, 0);
-        recv(clientSocket, sampleBlockReceive, BUFF_LEN, 0);
+        //send(clientSocket, sampleBlockSend, numMem, 0);
+        sendto(clientSocket, sampleBlockSend, numMem, 0, (SOCKADDR*)&sender, senderSize);
+        //recv(clientSocket, sampleBlockReceive, BUFF_LEN, 0);
+        recvfrom(udpSocket, sampleBlockReceive, BUFF_LEN, 0, (SOCKADDR*)&sender, &senderSize);
     }
     err = Pa_StopStream(stream);
     err = Pa_CloseStream(stream);

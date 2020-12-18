@@ -14,11 +14,11 @@
 #include "portaudio/include/portaudio.h"
 
 /* Laittaa kompiilerin toimimaa */
-#pragma comment(lib,"WS2_32")
+#pragma comment(lib,"WS2_32.lib")
 
 #define DEFAULT_PORT "6666"
 #define DEFAULT_IP "87.93.9.90"
-#define BUFF_LEN 128
+#define BUFF_LEN 512
 
 DWORD WINAPI WriteMessages(void* data);
 DWORD WINAPI IOAudio(void* data);
@@ -28,7 +28,7 @@ int commResult, sendResult;
 
 /* PORTAUDIO */
 #define SAMPLE_RATE (20000)
-#define FRAMES_PER_BUFFER 64
+#define FRAMES_PER_BUFFER 256
 #define SAMPLE_SIZE 2
 #define CHANNELS 1
 #define FORMAT paInt16
@@ -37,6 +37,10 @@ PaStream* stream;
 char* sampleBlockSend = NULL;
 char* sampleBlockReceive = NULL;
 int numMem;
+
+struct sockaddr_in udpSocket;
+int sockSize = sizeof(udpSocket);
+SOCKET udpSock;
 
 int main(void) {
     /* Init portaudio */
@@ -84,6 +88,13 @@ int main(void) {
         return 1;
     }
     printf("WSAStartup successful.\n");
+    /* Get IP */
+    char buff[100];
+    printf("Give an address to connect to: ");
+    gets(buff);
+    if (strlen(buff) == 0) {
+        strcat(buff, DEFAULT_IP);
+    }
 
     /* CREATING A SOCKET */
     /* Client address information */
@@ -95,13 +106,9 @@ int main(void) {
     hints.ai_protocol = IPPROTO_TCP;
     hints.ai_flags = AI_PASSIVE;
 
-    /* Get IP */
-    char buff[100];
-    printf("Give an address to connect to: ");
-    gets(buff);
-    if (strlen(buff) == 0) {
-        strcat(buff, DEFAULT_IP);
-    }
+    udpSocket.sin_family = AF_INET;
+    udpSocket.sin_port = htons(6667);
+    udpSocket.sin_addr.s_addr = inet_addr(buff);
 
     /* Resolve the local address and port to be used by the server */
     initResult = getaddrinfo(buff, DEFAULT_PORT, &hints, &result);
@@ -146,6 +153,9 @@ int main(void) {
     char sendBuff[BUFF_LEN] = { 0 };
 
     /* Start a new thread for receiving messages */
+    // Here the host waits for an udp packet...
+    udpSock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    sendto(udpSock, "hellokka", (int)(strlen("hellokka")), 0, (SOCKADDR*)&udpSocket, sockSize);
     //HANDLE thread = CreateThread(NULL, 0, WriteMessages, NULL, 0, NULL);
     HANDLE thread2 = CreateThread(NULL, 0, IOAudio, NULL, 0, NULL);
 
@@ -215,8 +225,10 @@ DWORD WINAPI IOAudio(void* data) {
             //printf("Vituiks meni lah %d", err);
             continue;
         }
-        send(connectSocket, sampleBlockSend, numMem, 0);
+        //send(connectSocket, sampleBlockSend, numMem, 0);
+        sendto(udpSock, sampleBlockSend, numMem, 0, (SOCKADDR*)&udpSocket, sockSize);
         recv(connectSocket, sampleBlockReceive, BUFF_LEN, 0);
+        sendto(udpSock, sampleBlockReceive, BUFF_LEN, 0, (SOCKADDR*)&udpSocket, sockSize);
     }
     err = Pa_StopStream(stream);
     err = Pa_CloseStream(stream);
