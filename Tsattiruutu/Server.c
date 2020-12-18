@@ -27,7 +27,7 @@ int commResult, sendResult;
 
 /* PORTAUDIO */
 #define SAMPLE_RATE (44100)
-#define FRAMES_PER_BUFFER 512
+#define FRAMES_PER_BUFFER 128
 #define SAMPLE_SIZE 4
 
 char* sampleBlockSend = NULL;
@@ -60,7 +60,7 @@ int main(void) {
     /* Blocking, so no callback. No callback, so no callback userData */
     err = Pa_OpenStream(&stream, &inputParameters, &outputParameters, SAMPLE_RATE, FRAMES_PER_BUFFER, paClipOff, NULL, NULL);
 
-    numMem = FRAMES_PER_BUFFER * SAMPLE_SIZE * Pa_GetDeviceInfo(inputParameters.device)->maxInputChannels;
+    numMem = FRAMES_PER_BUFFER * SAMPLE_SIZE;
     sampleBlockReceive = (char*)malloc(numMem);
     sampleBlockSend = (char*)malloc(numMem);
     memset(sampleBlockReceive, 0.0f, numMem);
