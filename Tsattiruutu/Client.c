@@ -28,8 +28,10 @@ int commResult, sendResult;
 
 /* PORTAUDIO */
 #define SAMPLE_RATE (20000)
-#define FRAMES_PER_BUFFER 64
-#define SAMPLE_SIZE 4
+#define FRAMES_PER_BUFFER 256
+#define SAMPLE_SIZE 1
+#define CHANNELS 1
+#define FORMAT paInt16
 
 PaStream* stream;
 char* sampleBlockSend = NULL;
@@ -38,7 +40,7 @@ int numMem;
 
 int main(void) {
     /* Init portaudio */
-   /* PORTAUDIO INITIT */
+    /* PORTAUDIO INITIT */
     PaError err = Pa_Initialize();
     if (err != paNoError)
         return 1;
@@ -46,14 +48,14 @@ int main(void) {
     /* -- setup input and output -- */
     PaStreamParameters inputParameters, outputParameters;
     inputParameters.device = Pa_GetDefaultInputDevice(); /* default input device */
-    inputParameters.channelCount = 1;
-    inputParameters.sampleFormat = paFloat32;
+    inputParameters.channelCount = CHANNELS;
+    inputParameters.sampleFormat = FORMAT;
     inputParameters.suggestedLatency = Pa_GetDeviceInfo(inputParameters.device)->defaultHighInputLatency;
     inputParameters.hostApiSpecificStreamInfo = NULL;
 
     outputParameters.device = Pa_GetDefaultOutputDevice(); /* default output device */
-    outputParameters.channelCount = 1;
-    outputParameters.sampleFormat = paFloat32;
+    outputParameters.channelCount = CHANNELS;
+    outputParameters.sampleFormat = FORMAT;
     outputParameters.suggestedLatency = Pa_GetDeviceInfo(outputParameters.device)->defaultHighOutputLatency;
     outputParameters.hostApiSpecificStreamInfo = NULL;
 
@@ -61,7 +63,7 @@ int main(void) {
     /* Blocking, so no callback. No callback, so no callback userData */
     err = Pa_OpenStream(&stream, &inputParameters, &outputParameters, SAMPLE_RATE, FRAMES_PER_BUFFER, paClipOff, NULL, NULL);
     /* Tahan stereo */
-    numMem = FRAMES_PER_BUFFER * SAMPLE_SIZE * 1;
+    numMem = FRAMES_PER_BUFFER * sizeof(char);
     sampleBlockReceive = (char*)malloc(numMem);
     sampleBlockSend = (char*)malloc(numMem);
     memset(sampleBlockReceive, 0.0f, numMem);
@@ -140,16 +142,15 @@ int main(void) {
     }
     printf("Connected to server!\n");
 
-    //char receiveBuff[BUFF_LEN] = "";
-    char receiveBuff[BUFF_LEN] = "";
+    char receiveBuff[BUFF_LEN] = { 0 };
+    char sendBuff[BUFF_LEN] = { 0 };
 
     /* Start a new thread for receiving messages */
-    err = Pa_StartStream(stream);
-    HANDLE thread = CreateThread(NULL, 0, WriteMessages, NULL, 0, NULL);
+    //HANDLE thread = CreateThread(NULL, 0, WriteMessages, NULL, 0, NULL);
     HANDLE thread2 = CreateThread(NULL, 0, IOAudio, NULL, 0, NULL);
 
     /* Tsatti pystys */
-    while (1) {
+    while (0) {
         commResult = recv(connectSocket, receiveBuff, BUFF_LEN, 0);
         /*if (commResult < 0) {
             printf("LOPPU");
@@ -201,9 +202,9 @@ DWORD WINAPI WriteMessages(void* data) {
 }
 
 DWORD WINAPI IOAudio(void* data) {
-    PaError err;
+    /* Init portaudio */
+    PaError err = Pa_StartStream(stream);
     while (1) {
-        recv(connectSocket, sampleBlockReceive, BUFF_LEN, 1);
         err = Pa_WriteStream(stream, sampleBlockReceive, FRAMES_PER_BUFFER);
         if (err != paNoError) {
             printf("Vituiks meni kirjotus %d", err);
@@ -214,6 +215,10 @@ DWORD WINAPI IOAudio(void* data) {
             printf("Vituiks meni lah %d", err);
             continue;
         }
-        send(connectSocket, sampleBlockSend, BUFF_LEN, 1);
+        send(connectSocket, sampleBlockSend, (int)strlen(sampleBlockSend), 0);
+        recv(connectSocket, sampleBlockReceive, (int)strlen(sampleBlockReceive), 0);
     }
+    err = Pa_StopStream(stream);
+    err = Pa_CloseStream(stream);
+    err = Pa_Terminate();
 }
