@@ -235,7 +235,7 @@ DWORD WINAPI IOAudio(void* data) {
             continue;
         }
         //send(clientSocket, sampleBlockSend, numMem, 0);
-        sendto(clientSocket, sampleBlockSend, numMem, 0, (SOCKADDR*)&sender, senderSize);
+        sendto(udpSocket, sampleBlockSend, numMem, 0, (SOCKADDR*)&sender, senderSize);
         //recv(clientSocket, sampleBlockReceive, BUFF_LEN, 0);
         recvfrom(udpSocket, sampleBlockReceive, BUFF_LEN, 0, (SOCKADDR*)&sender, &senderSize);
     }
