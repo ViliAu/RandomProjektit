@@ -29,7 +29,7 @@ int commResult, sendResult;
 /* PORTAUDIO */
 #define SAMPLE_RATE (20000)
 #define FRAMES_PER_BUFFER 256
-#define SAMPLE_SIZE 1
+#define SAMPLE_SIZE 2
 #define CHANNELS 1
 #define FORMAT paInt16
 
@@ -63,7 +63,7 @@ int main(void) {
     /* Blocking, so no callback. No callback, so no callback userData */
     err = Pa_OpenStream(&stream, &inputParameters, &outputParameters, SAMPLE_RATE, FRAMES_PER_BUFFER, paClipOff, NULL, NULL);
     /* Tahan stereo */
-    numMem = FRAMES_PER_BUFFER * sizeof(char)*16;
+    numMem = FRAMES_PER_BUFFER * SAMPLE_SIZE;
     sampleBlockReceive = (char*)malloc(numMem);
     sampleBlockSend = (char*)malloc(numMem);
     memset(sampleBlockReceive, 0.0f, numMem);
@@ -208,15 +208,15 @@ DWORD WINAPI IOAudio(void* data) {
         err = Pa_WriteStream(stream, sampleBlockReceive, FRAMES_PER_BUFFER);
         if (err != paNoError) {
             //printf("Vituiks meni kirjotus %d", err);
-            //continue;
+            continue;
         }
         err = Pa_ReadStream(stream, sampleBlockSend, FRAMES_PER_BUFFER);
         if (err != paNoError) {
             //printf("Vituiks meni lah %d", err);
-            //continue;
+            continue;
         }
-        send(connectSocket, sampleBlockSend, FRAMES_PER_BUFFER, 0);
-        recv(connectSocket, sampleBlockReceive, FRAMES_PER_BUFFER, 0);
+        send(connectSocket, sampleBlockSend, numMem, 0);
+        recv(connectSocket, sampleBlockReceive, BUFF_LEN, 0);
     }
     err = Pa_StopStream(stream);
     err = Pa_CloseStream(stream);
