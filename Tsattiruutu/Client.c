@@ -18,7 +18,7 @@
 
 #define DEFAULT_PORT "6666"
 #define DEFAULT_IP "87.93.9.90"
-#define BUFF_LEN 1024
+#define BUFF_LEN 128
 
 DWORD WINAPI WriteMessages(void* data);
 DWORD WINAPI IOAudio(void* data);
@@ -28,7 +28,7 @@ int commResult, sendResult;
 
 /* PORTAUDIO */
 #define SAMPLE_RATE (20000)
-#define FRAMES_PER_BUFFER 512
+#define FRAMES_PER_BUFFER 64
 #define SAMPLE_SIZE 2
 #define CHANNELS 1
 #define FORMAT paInt16

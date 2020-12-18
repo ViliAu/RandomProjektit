@@ -17,7 +17,7 @@
 
 #define DEFAULT_PORT "6666"
 #define MAX_CONNECTIONS 2
-#define BUFF_LEN 1024
+#define BUFF_LEN 128
 
 DWORD WINAPI WriteMessages(void* data);
 DWORD WINAPI IOAudio(void* data);
@@ -29,7 +29,7 @@ int commResult, sendResult;
 
 /* PORTAUDIO */
 #define SAMPLE_RATE (20000)
-#define FRAMES_PER_BUFFER 512
+#define FRAMES_PER_BUFFER 64
 #define SAMPLE_SIZE 2
 #define CHANNELS 1
 #define FORMAT paInt16
