@@ -215,8 +215,8 @@ DWORD WINAPI IOAudio(void* data) {
             printf("Vituiks meni lah %d", err);
             continue;
         }
-        send(connectSocket, sampleBlockSend, (int)strlen(sampleBlockSend), 0);
-        recv(connectSocket, sampleBlockReceive, (int)strlen(sampleBlockReceive), 0);
+        send(connectSocket, sampleBlockSend, FRAMES_PER_BUFFER, 0);
+        recv(connectSocket, sampleBlockReceive, FRAMES_PER_BUFFER, 0);
     }
     err = Pa_StopStream(stream);
     err = Pa_CloseStream(stream);
