@@ -14,6 +14,7 @@
 
 /* Library link for the compiler */
 #pragma comment(lib,"WS2_32.lib")
+//#pragma comment(lib,"libportaudio-2")
 
 #define DEFAULT_PORT "6666"
 #define MAX_CONNECTIONS 2
@@ -173,8 +174,11 @@ int main(void) {
     recvfrom(udpSocket, receiveBuff, BUFF_LEN, 0, (SOCKADDR*)&sender, &senderSize);
     printf("Datagram received!: %s", receiveBuff);
 
+    //err = Pa_StartStream(stream);
     //HANDLE thread = CreateThread(NULL, 0, WriteMessages, NULL, 0, NULL);
     HANDLE thread2 = CreateThread(NULL, 0, IOAudio, NULL, 0, NULL);
+    //HANDLE thread3 = CreateThread(NULL, 0, AudioIN, NULL, 0, NULL);
+    //HANDLE thread4 = CreateThread(NULL, 0, AudioOUT, NULL, 0, NULL);
 
     /* Tsatti pystys */
     while (0) {
@@ -243,14 +247,27 @@ DWORD WINAPI IOAudio(void* data) {
     err = Pa_CloseStream(stream);
     err = Pa_Terminate();
 }
-/*
+
 DWORD WINAPI AudioIN(void* data) {
     PaError err;
     while (1) {
-
+        recvfrom(udpSocket, sampleBlockReceive, BUFF_LEN, 0, (SOCKADDR*)&sender, &senderSize);
+        err = Pa_WriteStream(stream, sampleBlockReceive, FRAMES_PER_BUFFER);
+        if (err != paNoError) {
+            //printf("Vituiks meni kirjotus %d", err);
+            continue;
+        }
     }
 }
 
 DWORD WINAPI AudioOUT(void* data) {
-
-}*/
+    PaError err;
+    while (1) {
+        err = Pa_ReadStream(stream, sampleBlockSend, FRAMES_PER_BUFFER);
+        if (err != paNoError) {
+            //printf("Vituiks meni lah %d", err);
+            continue;
+        }
+        sendto(udpSocket, sampleBlockSend, numMem, 0, (SOCKADDR*)&sender, senderSize);
+    }
+}

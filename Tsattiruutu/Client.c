@@ -22,6 +22,8 @@
 
 DWORD WINAPI WriteMessages(void* data);
 DWORD WINAPI IOAudio(void* data);
+DWORD WINAPI AudioIN(void* data);
+DWORD WINAPI AudioOUT(void* data);
 
 SOCKET connectSocket = 0; //Globaali muuttuja hyi vilile
 int commResult, sendResult;
@@ -156,8 +158,12 @@ int main(void) {
     // Here the host waits for an udp packet...
     udpSock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     sendto(udpSock, "hellokka", (int)(strlen("hellokka")), 0, (SOCKADDR*)&udpSocket, sockSize);
+
+    //err = Pa_StartStream(stream);
     //HANDLE thread = CreateThread(NULL, 0, WriteMessages, NULL, 0, NULL);
     HANDLE thread2 = CreateThread(NULL, 0, IOAudio, NULL, 0, NULL);
+    //HANDLE thread3 = CreateThread(NULL, 0, AudioIN, NULL, 0, NULL);
+    //HANDLE thread4 = CreateThread(NULL, 0, AudioOUT, NULL, 0, NULL);
 
     /* Tsatti pystys */
     while (0) {
@@ -233,4 +239,28 @@ DWORD WINAPI IOAudio(void* data) {
     err = Pa_StopStream(stream);
     err = Pa_CloseStream(stream);
     err = Pa_Terminate();
+}
+
+DWORD WINAPI AudioIN(void* data) {
+    PaError err;
+    while (1) {
+        recvfrom(udpSock, sampleBlockReceive, BUFF_LEN, 0, (SOCKADDR*)&udpSocket, &sockSize);
+        err = Pa_WriteStream(stream, sampleBlockReceive, FRAMES_PER_BUFFER);
+        if (err != paNoError) {
+            //printf("Vituiks meni kirjotus %d", err);
+            continue;
+        }
+    }
+}
+
+DWORD WINAPI AudioOUT(void* data) {
+    PaError err;
+    while (1) {
+        err = Pa_ReadStream(stream, sampleBlockSend, FRAMES_PER_BUFFER);
+        if (err != paNoError) {
+            //printf("Vituiks meni lah %d", err);
+            continue;
+        }
+        sendto(udpSock, sampleBlockSend, numMem, 0, (SOCKADDR*)&udpSocket, sockSize);
+    }
 }
