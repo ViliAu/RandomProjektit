@@ -21,7 +21,6 @@
 #define BUFF_LEN 512
 
 DWORD WINAPI WriteMessages(void* data);
-DWORD WINAPI IOAudio(void* data);
 DWORD WINAPI AudioIN(void* data);
 DWORD WINAPI AudioOUT(void* data);
 
@@ -29,7 +28,7 @@ SOCKET connectSocket = 0; //Globaali muuttuja hyi vilile
 int commResult, sendResult;
 
 /* PORTAUDIO */
-#define SAMPLE_RATE (20000)
+#define SAMPLE_RATE 16384
 #define FRAMES_PER_BUFFER 256
 #define SAMPLE_SIZE 2
 #define CHANNELS 1
@@ -157,25 +156,19 @@ int main(void) {
     /* Start a new thread for receiving messages */
     // Here the host waits for an udp packet...
     udpSock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    printf("Sending comm est. UDP packet\n");
     sendto(udpSock, "hellokka", (int)(strlen("hellokka")), 0, (SOCKADDR*)&udpSocket, sockSize);
 
     err = Pa_StartStream(stream);
-    //HANDLE thread = CreateThread(NULL, 0, WriteMessages, NULL, 0, NULL);
-    //HANDLE thread2 = CreateThread(NULL, 0, IOAudio, NULL, 0, NULL);
+    HANDLE thread = CreateThread(NULL, 0, WriteMessages, NULL, 0, NULL);
     HANDLE thread3 = CreateThread(NULL, 0, AudioIN, NULL, 0, NULL);
     HANDLE thread4 = CreateThread(NULL, 0, AudioOUT, NULL, 0, NULL);
 
     /* Tsatti pystys */
-    while (0) {
+    while (1) {
         commResult = recv(connectSocket, receiveBuff, BUFF_LEN, 0);
-        /*if (commResult < 0) {
-            printf("LOPPU");
-            break;
-        }*/
-        if ((int)strlen(receiveBuff) > 1) {
-            printf("%s\n", receiveBuff);
-            memset(receiveBuff, 0, sizeof(receiveBuff));
-        }
+        printf("%s\n", receiveBuff);
+        memset(receiveBuff, 0, sizeof(receiveBuff));
     }
     getchar();
     WSACleanup();
@@ -202,7 +195,7 @@ DWORD WINAPI WriteMessages(void* data) {
             return 1;
         }
         time(&currentTime);
-        strftime(timeStamp, 20, "[31m[%d.%m.%Y %H.%M] ", localtime(&currentTime));
+        strftime(timeStamp, 20, "[%d.%m.%Y %H.%M] ", localtime(&currentTime));
         strcat(sendBuff, timeStamp);
         strcat(sendBuff, chatName);
         strcat(sendBuff, ": ");
@@ -215,30 +208,6 @@ DWORD WINAPI WriteMessages(void* data) {
     }
     printf("LOPPU");
     return 0;
-}
-
-DWORD WINAPI IOAudio(void* data) {
-    /* Init portaudio */
-    PaError err = Pa_StartStream(stream);
-    while (1) {
-        err = Pa_WriteStream(stream, sampleBlockReceive, FRAMES_PER_BUFFER);
-        if (err != paNoError) {
-            //printf("Vituiks meni kirjotus %d", err);
-            continue;
-        }
-        err = Pa_ReadStream(stream, sampleBlockSend, FRAMES_PER_BUFFER);
-        if (err != paNoError) {
-            //printf("Vituiks meni lah %d", err);
-            continue;
-        }
-        //send(connectSocket, sampleBlockSend, numMem, 0);
-        sendto(udpSock, sampleBlockSend, numMem, 0, (SOCKADDR*)&udpSocket, sockSize);
-        //recv(connectSocket, sampleBlockReceive, BUFF_LEN, 0);
-        recvfrom(udpSock, sampleBlockReceive, BUFF_LEN, 0, (SOCKADDR*)&udpSocket, &sockSize);
-    }
-    err = Pa_StopStream(stream);
-    err = Pa_CloseStream(stream);
-    err = Pa_Terminate();
 }
 
 DWORD WINAPI AudioIN(void* data) {
