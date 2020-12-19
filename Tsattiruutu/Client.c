@@ -159,11 +159,11 @@ int main(void) {
     udpSock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     sendto(udpSock, "hellokka", (int)(strlen("hellokka")), 0, (SOCKADDR*)&udpSocket, sockSize);
 
-    //err = Pa_StartStream(stream);
+    err = Pa_StartStream(stream);
     //HANDLE thread = CreateThread(NULL, 0, WriteMessages, NULL, 0, NULL);
-    HANDLE thread2 = CreateThread(NULL, 0, IOAudio, NULL, 0, NULL);
-    //HANDLE thread3 = CreateThread(NULL, 0, AudioIN, NULL, 0, NULL);
-    //HANDLE thread4 = CreateThread(NULL, 0, AudioOUT, NULL, 0, NULL);
+    //HANDLE thread2 = CreateThread(NULL, 0, IOAudio, NULL, 0, NULL);
+    HANDLE thread3 = CreateThread(NULL, 0, AudioIN, NULL, 0, NULL);
+    HANDLE thread4 = CreateThread(NULL, 0, AudioOUT, NULL, 0, NULL);
 
     /* Tsatti pystys */
     while (0) {

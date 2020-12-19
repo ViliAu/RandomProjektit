@@ -174,11 +174,11 @@ int main(void) {
     recvfrom(udpSocket, receiveBuff, BUFF_LEN, 0, (SOCKADDR*)&sender, &senderSize);
     printf("Datagram received!: %s", receiveBuff);
 
-    //err = Pa_StartStream(stream);
+    err = Pa_StartStream(stream);
     //HANDLE thread = CreateThread(NULL, 0, WriteMessages, NULL, 0, NULL);
-    HANDLE thread2 = CreateThread(NULL, 0, IOAudio, NULL, 0, NULL);
-    //HANDLE thread3 = CreateThread(NULL, 0, AudioIN, NULL, 0, NULL);
-    //HANDLE thread4 = CreateThread(NULL, 0, AudioOUT, NULL, 0, NULL);
+    //HANDLE thread2 = CreateThread(NULL, 0, IOAudio, NULL, 0, NULL);
+    HANDLE thread3 = CreateThread(NULL, 0, AudioIN, NULL, 0, NULL);
+    HANDLE thread4 = CreateThread(NULL, 0, AudioOUT, NULL, 0, NULL);
 
     /* Tsatti pystys */
     while (0) {
