@@ -11,9 +11,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "portaudio/include/portaudio.h"
+#include <portaudio.h>
 
-/* Laittaa kompiilerin toimimaa */
+/* DLL Linkit */
 #pragma comment(lib,"WS2_32.lib")
 
 #define DEFAULT_PORT "6666"

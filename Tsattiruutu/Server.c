@@ -10,11 +10,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include "portaudio/include/portaudio.h"
+#include <portaudio.h>
 
-/* Library link for the compiler */
+/* DLL Linkit */
 #pragma comment(lib,"WS2_32.lib")
-//#pragma comment(lib,"libportaudio-2")
 
 #define DEFAULT_PORT "6666"
 #define MAX_CONNECTIONS 2
