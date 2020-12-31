@@ -13,19 +13,35 @@ import com.example.travelrecorder.databinding.FragmentProjectSelectBinding;
 
 public class ProjectSelectFragment extends Fragment {
 
+    private MainActivity activity;
     private FragmentProjectSelectBinding binding;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         binding = FragmentProjectSelectBinding.inflate(inflater, container, false);
-        //initButtons();
+        activity = (MainActivity)getActivity();
+        initButtons();
         return binding.getRoot();
     }
 
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
+    }
+
+    private void initButtons() {
+        binding.btnAddProject.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showNewProjectDialog();
+            }
+        });
+    }
+
+    private void showNewProjectDialog() {
+        NewProjectDialog pd = new NewProjectDialog();
+        pd.show(activity.getSupportFragmentManager(), "pindialog");
     }
 
 }
