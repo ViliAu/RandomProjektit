@@ -207,6 +207,7 @@ DWORD WINAPI WriteMessages(void* data) {
         memset(sendBuff, 0, sizeof(sendMsg));
     }
     printf("LOPPU");
+
     return 0;
 }
 
@@ -220,6 +221,7 @@ DWORD WINAPI AudioIN(void* data) {
             continue;
         }
     }
+
 }
 
 DWORD WINAPI AudioOUT(void* data) {
@@ -232,4 +234,5 @@ DWORD WINAPI AudioOUT(void* data) {
         }
         sendto(udpSock, sampleBlockSend, numMem, 0, (SOCKADDR*)&udpSocket, sockSize);
     }
+
 }
