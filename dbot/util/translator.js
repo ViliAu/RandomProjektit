@@ -1,50 +1,59 @@
-const Discord = require('discord.js');
-const request = require('request');
-const querystring = require('querystring');
+const translate = require('@vitalets/google-translate-api');
 
-exports.translateText = (textToTranslate, from, to, reaction, user) => {
-    var form = {
-        'action': 'admin_gts_web_translator_translate',
-        'params[language_from]': from,
-        'params[language_to]': to,
-        'params[lang_pair]': from+'_'+to,
-        'params[provider]': 'Microsoft',
-        'params[input_text]': textToTranslate,
-    };
-    
-    var formData = querystring.stringify(form);
-    var contentLength = formData.length;
-    
-    request({
-        headers: {
-            'Content-Length': contentLength,
-            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-        },
-        uri: 'http://34.192.174.120/translate.php',
-        body: formData,
-        method: 'POST'
-    },
-    (err, res, body) => {
-        if (err) {
-            console.log(err);
-            return;
-        }
-        translation = JSON.parse(body).data;
-        console.log('RANTTI: '+translation);
-        var emojiFrom = reaction.emoji.toString() === "🇬🇧" ?  '🇫🇮' : '🇬🇧';
-        var emojiTo = from === 'fi' ? '🇬🇧' : '🇫🇮';
-        try {
-            var embed = new Discord.MessageEmbed()
-                .setAuthor(reaction.message.author.tag, reaction.message.author.avatarURL(), reaction.message.url)
-                .setColor('#FF9900')
-                .addField("Original " + emojiFrom, textToTranslate)
-                .addField("Translation " + emojiTo, translation)
-                .setFooter("Ordered by "+user.tag, user.avatarURL());
-                reaction.message.channel.send(embed);
-        }
-        catch(e) {
-            console.log(e);
-            return;
-        }
-    });
+exports.regionalToText = function (reg) {
+    const regAlphabet = '🇦🇧🇨🇩🇪🇫🇬🇭🇮🇯🇰🇱🇲🇳🇴🇵🇶🇷🇸🇹🇺🇻🇼🇽🇾🇿';
+    const alphabet = 'a b c d e f g h i j k l m n o p q r s t u v w x y z';
+    let langTo = '';
+    // Convert to normal ascii
+    for (const c of reg) {
+        langTo += alphabet.charAt(regAlphabet.search(c));
+    }
+    switch(langTo) {
+        case ca:
+        case us:
+        case gb:
+        case au:
+            langTo = 'en';
+            break;
+        case ee:
+            langTo = 'et';
+            break;
+        case jp:
+            langTo = 'ja';
+            break;
+    }
+    return langTo;
+}
+
+exports.textToRegional = function (text) {
+    const regAlphabet = ['🇦', '🇧', '🇨', ,'🇩', '🇪', '🇫', '🇬', '🇭', '🇮', '🇯', '🇰', '🇱', '🇲', '🇳', '🇴', '🇵', '🇶', '🇷', '🇸', '🇹', '🇺', '🇻', '🇼', '🇽', '🇾', '🇿'];
+    const alphabet = '.abcdefghijklmnopqrstuvwxyz';
+    let regTo = '';
+    for (const c of text) {
+        regTo += regAlphabet[alphabet.search(c)];
+    }
+    // If lang not found, parse english regional flags
+    switch(regTo) {
+        case '🇪🇳':
+            regTo = '🇬🇧';
+            break;
+        case '🇪🇹':
+            regTo = '🇪🇪';
+            break;
+        case '🇯🇦':
+            regTo = '🇯🇵';
+
+    }
+    // Parse the language
+    return regTo;
+}
+
+exports.translateTo = async function (to, text) {
+    try {
+        const translation = await translate(text, {to: to});
+        return translation;
+    }
+    catch(err) {
+        console.log(err);
+    }
 }

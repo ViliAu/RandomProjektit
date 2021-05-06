@@ -1,78 +1,113 @@
+const Discord = require('discord.js');
 const ytdl = require('ytdl-core');
+const yts = require('yt-search');
 
-var queue = [];
-var dispatcher = null;
-var currentUrl = null;
+var servers = {};
 
-exports.add = (message, url, showTitle = true, priority = false, seek = 0) => {
+exports.add = async function (message, url, showTitle = true, priority = false, seek = 0, duration = 0) {
+
     // Check if the requester is even in a voice chat
     if (!message.member.voice.channel) {
         message.reply("You need to be in a voice channel in order to use this command.");
         return;
     }
+    // Chekc if the server has a queue
+    if (servers[message.guild.id] == null) {
+        servers[message.guild.id] = {
+            startTime: 0,
+            timerObj: null,
+            queue: []
+        }
+    }
+    // Get server instance
+    const server = servers[message.guild.id];
+
+    // Get video title
+    let title = 'Unknown video';
+    let length = '??:??';
+    try {
+        const videoInfo = await ytdl.getInfo(url);
+        const divider = (videoInfo.videoDetails.lengthSeconds%60) < 10 ? ':0' : ':';
+        length = `${Math.floor(Number(videoInfo.videoDetails.lengthSeconds/60))}${divider}${Number(videoInfo.videoDetails.lengthSeconds%60)}`;
+        title = videoInfo.videoDetails.title;
+    }catch(err){console.log(err);}
+
+    // Check priority, priority pushes the req to be first.
     if (priority) {
-        queue.unshift({url: url, title: showTitle, seek: seek});
-        this.skip(null);
+        if (server.queue.length > 0) 
+            server.queue[0].seek = Math.round(Date.now() / 1000) - server.startTime;
+        server.queue.unshift({url: url, showTitle: showTitle, seek: seek, title: title, length: length});
+        if (server.queue.length > 1)
+            server.queue.unshift({url: url, showTitle: showTitle, seek: seek}); // ehkä fix joskus
+        this.skip(message, false);
     }
     else {
-        queue.push({url: url, title: showTitle, seek: seek});
+        server.queue.push({url: url, showTitle: showTitle, seek: seek, duration: duration, title: title, length: length});
     }
 
-    if (dispatcher != null) {
+    if (server.dispatcher != null) {
         if (showTitle) {
-            ytdl.getInfo(url).then(info => {
-                message.channel.send(info.videoDetails.title + " added to the queue! position: "+queue.length);
-            });
+            try {
+                const info = await ytdl.getInfo(url);
+                message.channel.send(`**${info.videoDetails.title}** added to the queue! Position: ***${server.queue.length-1}***`);
+            }
+            catch {}
         }
         return;
     }
 
-    message.member.voice.channel.join().then(connection => {
-        play(message, connection, true);
-    }).catch(err => console.log(err));
+    try {
+        const connection = await message.member.voice.channel.join();
+        play(message, connection, server);
+    }
+    catch(err) {
+        console.log(err)
+    }
 }
 
-exports.skip = (message) => {
-    if (dispatcher != null) {
-        if (message != null) {
+exports.skip = (message, reply) => {
+    const server = servers[message.guild.id];
+    clearTimeout(server.timerObj);
+    if (server.dispatcher != null) {
+        if (reply) {
             message.channel.send("⏭️ "+"<@" + message.author.id + ">"+" Skipped!");
         }
-        dispatcher.end();
+        server.dispatcher.end();
     }
 }
 
 exports.stop = (message) => {
-    queue = [];
-    if (dispatcher != null) {
-        message.channel.send("⏹️ "+"<@" + message.author.id + ">"+" stopped the radio. Sad.");
-        dispatcher.end();
+    const server = servers[message.guild.id];
+    clearTimeout(server.timerObj);
+    if (server.queue != null)
+        server.queue = [];
+    if (server.dispatcher != null) {
+        message.channel.send("⏹️ "+"<@" + message.author.id + ">"+" stopped the radio.");
+        server.dispatcher.end();
     }
 }
 
 exports.playing = (message) => {
-    if (currentUrl == null) {
+    if (servers[message.guild.id].queue[0] == null) {
         message.channel.send("There's nothing playing!");
         return;
     }
-    ytdl.getInfo(currentUrl).then(info => {
-        message.channel.send("🎶Currently playing: "+info.videoDetails.title+"🎶");
-    });
+    message.channel.send(`🎶Currently playing: **${servers[message.guild.id].queue[0].clip.title}**🎶`);
 }
 
 exports.replay = (message) => {
-    if (currentUrl == null) {
+    if (servers[message.guild.id].queue[0] == null) {
         message.channel.send("There's nothing playing!");
         return;
     }
-    this.add(message, currentUrl, false);
+    this.add(message, servers[message.guild.id].queue[0].url, false);
     this.skip(null);
     message.channel.send("🔄 "+"<@" + message.author.id + ">"+" Replayed!");
 }
 
-exports.search = async (message, args) => {
+exports.search = async function (message, args) {
     // Parse args
     const query = args.join(' ');
-
     const video = await yts(query);
     let url = '';
     for (let i = 0; i < 100; i++) {
@@ -86,28 +121,61 @@ exports.search = async (message, args) => {
             break;
         }
     }
-    this.add(message, url);
+    exports.add(message, url);
 }
 
-function play(message, connection) {
-    const clip = queue.shift();
-    const stream = ytdl(clip.url, { filter: 'audioonly' });
-    dispatcher = connection.play(stream, {volume: 1, seek: clip.seek});
-    // construct msg
-    if (clip.title) {
-        ytdl.getInfo(clip.url).then(info => {
-            message.channel.send("🎶Now playing: "+info.videoDetails.title+"🎶")
-        });
+exports.queue = function(message) {
+    const server = servers[message.guild.id];
+    if (server == null || server.queue.length == 0) {
+        message.channel.send("There's nothing on the queue!");
+        return;
     }
-    currentUrl = clip.url;
-    dispatcher
-    .on("finish", () => {
-        currentUrl = null;
-        if (queue[0] != null) {
-            play(message, connection);
+    let s = '';
+    let i = 1;
+    for (const o of server.queue) {
+        s += `**${i}.** ${o.title} *${o.length}*\n`;
+        i++
+    }
+    const embed = new Discord.MessageEmbed()
+    .addFields({ name: 'Queue', value: s });
+    message.channel.send(embed);
+}
+
+exports.empty = function(message) {
+    const server = servers[message.guild.id];
+    if (server == null || server.queue.length < 2) {
+        message.channel.send("There's nothing to empty!");
+        return;
+    }
+    server.queue.splice(1, server.queue.length-1);
+    message.channel.send("Queue emptied!");
+}
+
+async function play(message, connection, server) {
+    server.startTime = Math.round(Date.now() / 1000);
+    const clip = server.queue[0];
+    const stream = ytdl(clip.url, { filter: 'audioonly' });
+    server.dispatcher = connection.play(stream, {volume: 1, seek: clip.seek});
+    // Send msg
+    if (clip.showTitle) {
+        message.channel.send(`🎶Now playing: **${clip.title}**🎶`)
+    }
+
+    // Start timer to stop after the duration if duration is set
+    server.dispatcher
+    .on('start', () => {
+        console.log("asd");
+        stopAfterDuration(message, clip.duration);
+    });
+
+    server.dispatcher
+    .on('finish', () => {
+        server.queue.shift();
+        if (server.queue[0] != null) {
+            play(message, connection, server);
         }
         else {
-            dispatcher = null;
+            server.dispatcher = null;
             try {
                 message.member.voice.channel.leave();
             } catch{}
@@ -115,12 +183,13 @@ function play(message, connection) {
     });
 }
 
-async function sendMessage(url, message) {
-    try {
-        ytdl.getBasicInfo
-        
+function stopAfterDuration(message, dur) {
+    const server = servers[message.guild.id]
+    if (dur == 0) {
+        clearTimeout(server.timerObj);
+        return;
     }
-    catch (e) {
-        console.log(e);
-    }
+    setTimeout(() => {
+        exports.skip(message, null)
+    }, dur * 1000);
 }

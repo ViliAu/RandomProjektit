@@ -1,15 +1,15 @@
 const request = require('request');
-const whitelist = ['pgif', '4k', 'boobs', 'gonewild', 'anal', 'hentai', 'tentacle']
+const whitelist = ['pgif', '4k', 'boobs', 'gonewild', 'anal']
 const max = 5;
 
 exports.requestImage = (message, command, args) => {
     // Condition check
+    if (!whitelist.includes(command))
+        return;
     if (!message.channel.nsfw) {
         message.channel.send("You have to send this stuff to a NSFW channel 👀");
         return;
     }
-    if (!whitelist.includes(command))
-        return;
     amount = 1;
     try {
         amount = parseInt(args);

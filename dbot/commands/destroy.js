@@ -24,26 +24,26 @@ module.exports = {
         var loadedImage;
 
         Jimp.read(fileName)
-            .then((image) => {
-                loadedImage = image;
-                return Jimp.loadFont(Jimp.FONT_SANS_16_BLACK);
-            })
-            .then((font) => {
-                loadedImage.print(font, 20, 10, {
-                    text: caption[0],
-                    alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
-                    alignmentY: Jimp.VERTICAL_ALIGN_CENTER}, 100, 50)
-                .print(font, 150, 200, {
-                    text: caption[1],
-                    alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
-                    alignmentY: Jimp.VERTICAL_ALIGN_CENTER}, 100, 100)
-                .write(path+'tempgen.png');
-            }).then(() => {
-                message.channel.send({files:[path+'tempgen.png']});
-            })
-            .catch(function (err) {
-                console.error(err);
-            });
+        .then((image) => {
+            loadedImage = image;
+            return Jimp.loadFont(Jimp.FONT_SANS_16_BLACK);
+        })
+        .then((font) => {
+            loadedImage.print(font, 20, 10, {
+                text: caption[0],
+                alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
+                alignmentY: Jimp.VERTICAL_ALIGN_CENTER}, 100, 50)
+            .print(font, 150, 200, {
+                text: caption[1],
+                alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
+                alignmentY: Jimp.VERTICAL_ALIGN_CENTER}, 100, 100)
+            .write(path+'tempgen.png');
+        }).then(() => {
+            message.channel.send({files:[path+'generated.png']});
+        })
+        .catch(function (err) {
+            console.error(err);
+        });
     }
 }
 /*
