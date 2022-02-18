@@ -70,4 +70,4 @@ client.on('message', async (message) => {
     cmdParser.parseCommand(client, message);
 });
 
-client.login('token');
+client.login('ODE3NDM4NDM2MTAxMDYyNzI1.YEJg3g.DMGMYGqB4kP4BeMQHbpD_-YzIcc');

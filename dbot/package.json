@@ -17,6 +17,6 @@
     "mongodb": "^3.6.5",
     "request": "^2.88.2",
     "yt-search": "^2.7.6",
-    "ytdl-core": "^4.7.0"
+    "ytdl-core": "^4.9.2"
   }
 }

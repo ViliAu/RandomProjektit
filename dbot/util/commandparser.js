@@ -27,7 +27,7 @@ exports.parseCommand = function (client, message) {
     
 }
 
-function checkCommand(client, message, command, args) {
+async function checkCommand(client, message, command, args) {
     cmdFound = checkBasic(client, message, command, args);
     if (cmdFound) return true;
     cmdfound = checkReddit(client, message, command, args);
@@ -43,7 +43,7 @@ function checkCommand(client, message, command, args) {
     cmdFound = checkMisc(client, message, command, args);
     if (cmdFound) return true;
     // If no command is found, check the custom commands
-    cmdFound = custcmd.parseCustomCommand(command, message);
+    cmdFound = await custcmd.parseCustomCommand(command, message);
     return cmdFound;
 }
 
@@ -134,6 +134,8 @@ function checkRadio(message, command, args) {
                     player.search(message, args, true, false);
                 }
             break;
+        case 'playlist':
+            player.addPlaylist(message, args[0]);
         case 'playing':
             player.playing(message);
             break;
